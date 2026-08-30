@@ -1,5 +1,5 @@
 // lib/models/gait_features.dart
-// Decoupled gait features data structure. Accepts inputs from video pose analysis or BLE hardware sensor.
+// Decoupled gait and sit-to-stand features data structure. Accepts inputs from video pose analysis or BLE hardware sensor.
 
 class GaitFeatures {
   final double romLeft;
@@ -9,6 +9,8 @@ class GaitFeatures {
   final double cadence;
   final double jerkLeft;
   final double jerkRight;
+  final double sitToStandTime;
+  final String inputSource;
   final List<double> leftTrajectory;
   final List<double> rightTrajectory;
   final double confidence;
@@ -22,6 +24,8 @@ class GaitFeatures {
     required this.cadence,
     required this.jerkLeft,
     required this.jerkRight,
+    this.sitToStandTime = 2.4,
+    this.inputSource = 'Camera Pose Analysis',
     this.leftTrajectory = const [],
     this.rightTrajectory = const [],
     this.confidence = 0.92,
@@ -37,6 +41,8 @@ class GaitFeatures {
       'Cadence (steps/min)': cadence,
       'Jerk left': jerkLeft,
       'Jerk right': jerkRight,
+      'Sit-to-Stand Transition (sec)': sitToStandTime,
+      'Data Source': inputSource,
     };
   }
 
@@ -49,6 +55,8 @@ class GaitFeatures {
       cadence: (map['Cadence (steps/min)'] as num).toDouble(),
       jerkLeft: (map['Jerk left'] as num).toDouble(),
       jerkRight: (map['Jerk right'] as num).toDouble(),
+      sitToStandTime: (map['Sit-to-Stand Transition (sec)'] as num? ?? 2.4).toDouble(),
+      inputSource: map['Data Source'] as String? ?? 'Camera Pose Analysis',
     );
   }
 }

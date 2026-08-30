@@ -86,6 +86,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
       cadence: widget.features.cadence,
       jerkLeft: widget.features.jerkLeft,
       jerkRight: widget.features.jerkRight,
+      sitToStandTime: widget.features.sitToStandTime,
+      inputSource: widget.features.inputSource,
       poseConfidence: widget.features.confidence,
       framesTracked: widget.features.framesTracked,
       gaitScore: _riskResult.gaitPoints,
@@ -181,31 +183,54 @@ class _ResultsScreenState extends State<ResultsScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.all(14.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          widget.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.name,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'ID: ${widget.patientId}  |  ${widget.age} ${t("age", lang)} (${widget.sex})',
+                              style: const TextStyle(color: Colors.grey, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                        if (_savedToDb)
+                          const Chip(
+                            avatar: Icon(Icons.check, size: 16, color: Colors.green),
+                            label: Text('Saved Offline', style: TextStyle(fontSize: 11)),
+                            backgroundColor: Color(0xFFECFDF5),
                           ),
+                      ],
+                    ),
+                    const Divider(height: 16),
+                    Row(
+                      children: [
+                        const Icon(Icons.sensors, size: 16, color: Colors.teal),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${t("data_source", lang)}: ',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          'ID: ${widget.patientId}  |  ${widget.age} ${t("age", lang)} (${widget.sex})',
-                          style: const TextStyle(color: Colors.grey, fontSize: 13),
+                          widget.features.inputSource,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal.shade900,
+                          ),
                         ),
                       ],
                     ),
-                    if (_savedToDb)
-                      const Chip(
-                        avatar: Icon(Icons.check, size: 16, color: Colors.green),
-                        label: Text('Saved Offline', style: TextStyle(fontSize: 11)),
-                        backgroundColor: Color(0xFFECFDF5),
-                      ),
                   ],
                 ),
               ),
@@ -489,6 +514,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             '${widget.features.peakFlexionRight.toStringAsFixed(1)}°'),
                         _buildTableRow(t('marker_cadence', lang),
                             '${widget.features.cadence.toStringAsFixed(1)}'),
+                        _buildTableRow(t('marker_sts_time', lang),
+                            '${widget.features.sitToStandTime.toStringAsFixed(1)}s'),
                         _buildTableRow(t('marker_jerk_l', lang),
                             widget.features.jerkLeft.toStringAsFixed(3)),
                         _buildTableRow(t('marker_jerk_r', lang),
@@ -564,9 +591,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [

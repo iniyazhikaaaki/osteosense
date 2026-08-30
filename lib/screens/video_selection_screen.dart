@@ -1,5 +1,5 @@
 // lib/screens/video_selection_screen.dart
-// Video selection screen using image_picker with visible "Connect knee sensor (coming soon)" stub button.
+// Video & Sensor selection screen supporting built-in camera recording (Walk + Sit-to-Stand) and BLE Knee Sensor Telemetry.
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -46,14 +46,27 @@ class VideoSelectionScreen extends StatefulWidget {
 }
 
 class _VideoSelectionScreenState extends State<VideoSelectionScreen> {
-  XFile? _selectedVideo;
+  XFile? _walkVideo;
+  XFile? _stsVideo;
   bool _useImpairedPreset = false;
+  bool _isSensorConnected = false;
+  int _selectedInputTab = 0; // 0 = Camera Pose Analysis, 1 = BLE Knee Sensor
 
-  Future<void> _pickVideo() async {
+  Future<void> _pickVideo(ImageSource source, bool isWalkVideo) async {
     final picker = ImagePicker();
-    final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
+    final XFile? video = await picker.pickVideo(
+      source: source,
+      maxDuration: const Duration(seconds: 30),
+    );
+
     if (video != null) {
-      setState(() => _selectedVideo = video);
+      setState(() {
+        if (isWalkVideo) {
+          _walkVideo = video;
+        } else {
+          _stsVideo = video;
+        }
+      });
     }
   }
 
@@ -76,8 +89,102 @@ class _VideoSelectionScreenState extends State<VideoSelectionScreen> {
           womacRising: widget.womacRising,
           womacSquatting: widget.womacSquatting,
           womacTotal: widget.womacTotal,
-          videoPath: _selectedVideo?.path,
+          walkVideoPath: _walkVideo?.path,
+          stsVideoPath: _stsVideo?.path,
           useImpairedPreset: _useImpairedPreset,
+          isSensorInput: _selectedInputTab == 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoInputCard({
+    required String titleKey,
+    required IconData icon,
+    required XFile? selectedFile,
+    required VoidCallback onCameraTap,
+    required VoidCallback onGalleryTap,
+  }) {
+    final lang = widget.lang;
+
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(14.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Colors.teal),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    t(titleKey, lang),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onCameraTap,
+                    icon: const Icon(Icons.videocam_outlined),
+                    label: Text(t('record_camera', lang)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onGalleryTap,
+                    icon: const Icon(Icons.folder_open),
+                    label: Text(t('pick_gallery', lang)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (selectedFile != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.teal.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.teal.shade300),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.teal, size: 20),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '${t("video_selected", lang)} ${selectedFile.name}',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -109,114 +216,154 @@ class _VideoSelectionScreenState extends State<VideoSelectionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    const Icon(Icons.videocam_outlined, size: 56, color: Colors.teal),
-                    const SizedBox(height: 12),
-                    Text(
-                      t('gait_instructions', lang),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 15, color: Colors.blueGrey),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _pickVideo,
-                      icon: const Icon(Icons.file_upload_outlined),
-                      label: Text(t('upload_video', lang)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      ),
-                    ),
-                    if (_selectedVideo != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(10),
+            // Segmented input selector tab
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.teal.shade200),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedInputTab = 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.teal.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.teal.shade200),
+                          color: _selectedInputTab == 0 ? Colors.teal.shade700 : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.check_circle, color: Colors.teal),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${t("video_selected", lang)} ${_selectedVideo!.name}',
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
+                        child: Center(
+                          child: Text(
+                            t('camera_tab', lang),
+                            style: TextStyle(
+                              color: _selectedInputTab == 0 ? Colors.white : Colors.teal.shade900,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                    ],
-                  ],
-                ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedInputTab = 1),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _selectedInputTab == 1 ? Colors.teal.shade700 : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(
+                            t('sensor_tab', lang),
+                            style: TextStyle(
+                              color: _selectedInputTab == 1 ? Colors.white : Colors.teal.shade900,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // Demo gait simulation preset selector (for quick testing/demo)
+            if (_selectedInputTab == 0) ...[
+              Text(
+                t('gait_instructions', lang),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: Colors.blueGrey),
+              ),
+              const SizedBox(height: 12),
+              _buildVideoInputCard(
+                titleKey: 'walk_video_title',
+                icon: Icons.directions_walk,
+                selectedFile: _walkVideo,
+                onCameraTap: () => _pickVideo(ImageSource.camera, true),
+                onGalleryTap: () => _pickVideo(ImageSource.gallery, true),
+              ),
+              _buildVideoInputCard(
+                titleKey: 'sts_video_title',
+                icon: Icons.airline_seat_recline_extra,
+                selectedFile: _stsVideo,
+                onCameraTap: () => _pickVideo(ImageSource.camera, false),
+                onGalleryTap: () => _pickVideo(ImageSource.gallery, false),
+              ),
+            ] else ...[
+              // BLE Knee Sensor Telemetry Connector Panel
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Icon(
+                        _isSensorConnected ? Icons.bluetooth_connected : Icons.bluetooth_searching,
+                        size: 48,
+                        color: _isSensorConnected ? Colors.teal : Colors.grey,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        t('sensor_input_title', lang),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _isSensorConnected
+                            ? t('sensor_connected', lang)
+                            : 'Connect ESP32 + MPU6050 BLE Knee Band for live 100Hz IMU joint telemetry',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() => _isSensorConnected = !_isSensorConnected);
+                        },
+                        icon: Icon(_isSensorConnected ? Icons.check_circle : Icons.bluetooth),
+                        label: Text(
+                          _isSensorConnected
+                              ? 'Sensor Stream Active'
+                              : t('sensor_connect_btn', lang),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isSensorConnected ? Colors.teal.shade700 : Colors.teal.shade600,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 12),
+            // Simulation Preset Switcher
             Card(
               elevation: 1,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: SwitchListTile(
                 title: const Text(
-                  'Simulate Impaired Gait Test Video',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  'Simulate Impaired Gait & Sit-to-Stand Test',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 subtitle: const Text(
-                  'Generates severe ROM reduction signal for demonstration',
-                  style: TextStyle(fontSize: 12),
+                  'Generates reduced ROM & prolonged transition time signal',
+                  style: TextStyle(fontSize: 11),
                 ),
                 value: _useImpairedPreset,
-                activeColor: Colors.teal,
+                activeThumbColor: Colors.teal,
                 onChanged: (val) => setState(() => _useImpairedPreset = val),
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Stub Button for Knee Band BLE Sensor (per Section 2 & 3 of brief)
-            Tooltip(
-              message: 'Hardware BLE Sensor Integration Workstream',
-              child: Opacity(
-                opacity: 0.6,
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade400, style: BorderStyle.solid),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.bluetooth_disabled, color: Colors.grey),
-                      const SizedBox(width: 10),
-                      Flexible(
-                        child: Text(
-                          t('connect_sensor', lang),
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
 
             Row(
               children: [

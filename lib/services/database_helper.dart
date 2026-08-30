@@ -23,8 +23,9 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -52,6 +53,8 @@ class DatabaseHelper {
         cadence REAL,
         jerk_left REAL,
         jerk_right REAL,
+        sit_to_stand_time REAL,
+        input_source TEXT,
         pose_confidence REAL,
         frames_tracked INTEGER,
         gait_score INTEGER,
@@ -60,6 +63,13 @@ class DatabaseHelper {
         risk_score INTEGER
       )
     ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE records ADD COLUMN sit_to_stand_time REAL DEFAULT 2.4');
+      await db.execute('ALTER TABLE records ADD COLUMN input_source TEXT DEFAULT "Camera Pose Analysis"');
+    }
   }
 
   Future<int> insertRecord(PatientRecord record) async {

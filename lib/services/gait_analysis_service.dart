@@ -1,5 +1,5 @@
 // lib/services/gait_analysis_service.dart
-// Offline gait processing pipeline: joint angle calculation, signal smoothing, step counting, and feature extraction.
+// Offline gait and sit-to-stand processing pipeline: joint angle calculation, smoothing, step counting, and feature extraction.
 
 import 'dart:math';
 import '../models/gait_features.dart';
@@ -121,6 +121,8 @@ class GaitAnalysisService {
     List<double> rawRight, {
     double fps = 30.0,
     double confidence = 0.94,
+    double sitToStandTime = 2.4,
+    String inputSource = 'Camera Pose Analysis',
   }) {
     List<double> left = rawLeft.map((x) => x.clamp(-15.0, 130.0)).toList();
     List<double> right = rawRight.map((x) => x.clamp(-15.0, 130.0)).toList();
@@ -155,6 +157,8 @@ class GaitAnalysisService {
       cadence: double.parse(cadence.toStringAsFixed(1)),
       jerkLeft: double.parse(jerkL.toStringAsFixed(3)),
       jerkRight: double.parse(jerkR.toStringAsFixed(3)),
+      sitToStandTime: double.parse(sitToStandTime.toStringAsFixed(1)),
+      inputSource: inputSource,
       leftTrajectory: left,
       rightTrajectory: right,
       confidence: confidence,
@@ -163,22 +167,24 @@ class GaitAnalysisService {
   }
 
   /// Synthesizes realistic 150-frame gait trajectory for demo/fallback offline analysis
-  static GaitFeatures generateMockGaitData({bool impaired = false}) {
+  static GaitFeatures generateMockGaitData({
+    bool impaired = false,
+    bool isSensorInput = false,
+  }) {
     int totalFrames = 150;
     List<double> left = [];
     List<double> right = [];
     Random rnd = Random(42);
 
-    // Normal gait parameters vs Impaired OA gait parameters
     double baseRomL = impaired ? 18.0 : 38.0;
     double baseRomR = impaired ? 28.0 : 36.0;
     double minAngleL = 5.0;
     double minAngleR = 5.0;
 
     for (int i = 0; i < totalFrames; i++) {
-      double t = i / 15.0; // ~2 cycles per second
-      double noiseL = (rnd.nextDouble() - 0.5) * 1.5;
-      double noiseR = (rnd.nextDouble() - 0.5) * 1.5;
+      double t = i / 15.0;
+      double noiseL = (rnd.nextDouble() - 0.5) * (isSensorInput ? 0.5 : 1.5);
+      double noiseR = (rnd.nextDouble() - 0.5) * (isSensorInput ? 0.5 : 1.5);
 
       double valL = minAngleL + baseRomL * pow(sin(t), 2) + noiseL;
       double valR = minAngleR + baseRomR * pow(sin(t + pi / 2), 2) + noiseR;
@@ -187,6 +193,18 @@ class GaitAnalysisService {
       right.add(valR);
     }
 
-    return computeFeatures(left, right, fps: 30.0, confidence: 0.95);
+    double stsTime = impaired ? 4.2 : 2.1;
+    String sourceStr = isSensorInput
+        ? 'BLE Knee Sensor (100Hz IMU)'
+        : 'Camera Pose Analysis';
+
+    return computeFeatures(
+      left,
+      right,
+      fps: 30.0,
+      confidence: isSensorInput ? 0.99 : 0.95,
+      sitToStandTime: stsTime,
+      inputSource: sourceStr,
+    );
   }
 }

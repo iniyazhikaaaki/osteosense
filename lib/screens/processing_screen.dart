@@ -1,5 +1,5 @@
 // lib/screens/processing_screen.dart
-// Offline processing screen showing animated gait analysis progress.
+// Offline processing screen showing animated gait and sit-to-stand analysis progress.
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -23,8 +23,10 @@ class ProcessingScreen extends StatefulWidget {
   final int womacRising;
   final int womacSquatting;
   final int womacTotal;
-  final String? videoPath;
+  final String? walkVideoPath;
+  final String? stsVideoPath;
   final bool useImpairedPreset;
+  final bool isSensorInput;
 
   const ProcessingScreen({
     super.key,
@@ -42,8 +44,10 @@ class ProcessingScreen extends StatefulWidget {
     required this.womacRising,
     required this.womacSquatting,
     required this.womacTotal,
-    this.videoPath,
+    this.walkVideoPath,
+    this.stsVideoPath,
     required this.useImpairedPreset,
+    this.isSensorInput = false,
   });
 
   @override
@@ -64,9 +68,10 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
   void _startOfflineAnalysis() {
     _computedFeatures = GaitAnalysisService.generateMockGaitData(
       impaired: widget.useImpairedPreset,
+      isSensorInput: widget.isSensorInput,
     );
 
-    _timer = Timer.periodic(const Duration(milliseconds: 60), (timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
       setState(() {
         _progress += 0.04;
         if (_progress >= 1.0) {
@@ -148,6 +153,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
               const SizedBox(height: 32),
               Text(
                 t('processing', lang),
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -155,10 +161,12 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Running local pose detection & knee angle frame extraction...',
+              Text(
+                widget.isSensorInput
+                    ? 'Processing BLE Knee Sensor 100Hz IMU Telemetry data...'
+                    : 'Running local pose detection, walk gait & sit-to-stand extraction...',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ],
           ),

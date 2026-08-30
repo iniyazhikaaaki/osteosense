@@ -19,7 +19,7 @@ class PatientRecord {
   final int womacSquatting;
   final int womacTotal;
 
-  // Gait Features
+  // Gait & Mobility Features
   final double romLeft;
   final double romRight;
   final double romAsymmetry;
@@ -27,6 +27,8 @@ class PatientRecord {
   final double cadence;
   final double jerkLeft;
   final double jerkRight;
+  final double sitToStandTime;
+  final String inputSource;
   final double poseConfidence;
   final int framesTracked;
 
@@ -58,6 +60,8 @@ class PatientRecord {
     required this.cadence,
     required this.jerkLeft,
     required this.jerkRight,
+    this.sitToStandTime = 2.4,
+    this.inputSource = 'Camera Pose Analysis',
     required this.poseConfidence,
     required this.framesTracked,
     required this.gaitScore,
@@ -89,6 +93,8 @@ class PatientRecord {
       'cadence': cadence,
       'jerk_left': jerkLeft,
       'jerk_right': jerkRight,
+      'sit_to_stand_time': sitToStandTime,
+      'input_source': inputSource,
       'pose_confidence': poseConfidence,
       'frames_tracked': framesTracked,
       'gait_score': gaitScore,
@@ -121,6 +127,8 @@ class PatientRecord {
       cadence: (map['cadence'] as num? ?? 0.0).toDouble(),
       jerkLeft: (map['jerk_left'] as num? ?? 0.0).toDouble(),
       jerkRight: (map['jerk_right'] as num? ?? 0.0).toDouble(),
+      sitToStandTime: (map['sit_to_stand_time'] as num? ?? 2.4).toDouble(),
+      inputSource: map['input_source'] as String? ?? 'Camera Pose Analysis',
       poseConfidence: (map['pose_confidence'] as num? ?? 0.0).toDouble(),
       framesTracked: (map['frames_tracked'] as num? ?? 0).toInt(),
       gaitScore: (map['gait_score'] as num? ?? 0).toInt(),
