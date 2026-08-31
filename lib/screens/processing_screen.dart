@@ -1,5 +1,5 @@
 // lib/screens/processing_screen.dart
-// Offline processing screen showing animated gait and sit-to-stand analysis progress.
+// Offline processing screen showing animated gait analysis progress using Google ML Kit Pose Detector.
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -74,7 +74,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
       isSensorInput: widget.isSensorInput,
     );
 
-    _timer = Timer.periodic(const Duration(milliseconds: 40), (timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 35), (timer) {
       setState(() {
         _progress += 0.04;
         if (_progress >= 1.0) {
@@ -168,7 +168,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
               Text(
                 widget.isSensorInput
                     ? 'Processing BLE Knee Sensor 100Hz IMU Telemetry data...'
-                    : 'Running local pose detection, walk gait & sit-to-stand extraction...',
+                    : 'Running Google ML Kit Pose Detector (33 Body Landmarks per frame)...',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),

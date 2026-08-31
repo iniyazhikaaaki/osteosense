@@ -10,6 +10,7 @@ import '../services/scoring_service.dart';
 import '../theme/app_theme.dart';
 import '../translations.dart';
 import '../widgets/flexion_chart.dart';
+import '../widgets/skeleton_overlay_widget.dart';
 import '../widgets/language_toggle.dart';
 import 'patient_details_screen.dart';
 
@@ -290,6 +291,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // Pose Tracking Visual Proof (3 representative frames with BlazePose skeleton)
+            SkeletonOverlayWidget(
+              meanConfidence: widget.features.confidence,
+              totalFrames: widget.features.framesTracked,
             ),
             const SizedBox(height: 16),
 
