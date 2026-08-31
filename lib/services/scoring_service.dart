@@ -1,6 +1,5 @@
 // lib/services/scoring_service.dart
-// Calibrated clinical scoring engine matching KOA-PD-NM 32-video reference dataset pipeline.
-// Team TECHSTRIDE | SIH 2026 | PS 26004
+// Weighted clinical scoring engine prioritizing MediaPipe BlazePose Video Gait Analysis (70% weightage) over WOMAC questionnaire (30% weightage).
 
 import '../models/gait_features.dart';
 
@@ -63,8 +62,8 @@ class RiskScoreResult {
 }
 
 class ScoringService {
-  static const int gaitScoreMax = 6;
-  static const int symptomScoreMax = 6;
+  static const int gaitScoreMax = 8; // Primary weightage (70%)
+  static const int symptomScoreMax = 4; // Secondary weightage (30%)
   static const int totalScoreMax = 12;
 
   static const Map<String, List<String>> recommendationsMap = {
@@ -95,8 +94,8 @@ class ScoringService {
     ],
   };
 
-  /// Gait sub-score (0-6) from BlazePose knee flexion signals.
-  /// Calibrated against 32 ground-truth videos from KOA-PD-NM dataset.
+  /// Primary Gait Sub-Score (0-8) derived from MediaPipe BlazePose Video Joint Tracking.
+  /// Carries 70% primary diagnostic weightage.
   static GaitScoreResult scoreGait(GaitFeatures features) {
     int points = 0;
     List<String> reasons = [];
@@ -106,46 +105,55 @@ class ScoringService {
         : features.romRight;
 
     if (worstRom < 20) {
+      points += 4;
+      reasons.add(
+          "Knee flexion range severely restricted (${worstRom.toStringAsFixed(0)}°)");
+    } else if (worstRom < 25) {
       points += 3;
       reasons.add(
-          "Knee flexion range severely reduced (${worstRom.toStringAsFixed(0)} deg)");
-    } else if (worstRom < 25) {
+          "Knee flexion range moderately restricted (${worstRom.toStringAsFixed(0)}°)");
+    } else if (worstRom < 30) {
       points += 2;
       reasons.add(
-          "Knee flexion range moderately reduced (${worstRom.toStringAsFixed(0)} deg)");
-    } else if (worstRom < 30) {
+          "Knee flexion range mildly restricted (${worstRom.toStringAsFixed(0)}°)");
+    } else if (worstRom < 35) {
       points += 1;
       reasons.add(
-          "Knee flexion range mildly reduced (${worstRom.toStringAsFixed(0)} deg)");
+          "Knee flexion range slightly restricted (${worstRom.toStringAsFixed(0)}°)");
     }
 
     double asymmetry = features.romAsymmetry;
-    if (asymmetry >= 0.50) {
+    if (asymmetry >= 0.45) {
+      points += 4;
+      reasons.add(
+          "Severe left-right gait asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
+    } else if (asymmetry >= 0.35) {
       points += 3;
       reasons.add(
-          "Severe left-right asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
-    } else if (asymmetry >= 0.35) {
+          "Marked left-right gait asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
+    } else if (asymmetry >= 0.20) {
       points += 2;
       reasons.add(
-          "Marked left-right asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
-    } else if (asymmetry >= 0.20) {
+          "Moderate left-right gait asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
+    } else if (asymmetry >= 0.10) {
       points += 1;
       reasons.add(
-          "Mild left-right asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
+          "Mild left-right gait asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
     }
 
     return GaitScoreResult(points, reasons);
   }
 
-  /// Symptom sub-score (0-6) from WOMAC-lite (0-20) total.
+  /// Secondary Questionnaire Sub-Score (0-4) from WOMAC-lite (0-20) total.
+  /// Carries 30% secondary diagnostic weightage.
   static SymptomScoreResult scoreSymptoms(int womac) {
     if (womac >= 15) {
       return SymptomScoreResult(
-          6, ["Severe reported pain and stiffness (WOMAC-lite $womac/20)"]);
+          4, ["High reported symptoms (WOMAC-lite $womac/20)"]);
     }
     if (womac >= 10) {
       return SymptomScoreResult(
-          4, ["Moderate-to-high reported symptoms (WOMAC-lite $womac/20)"]);
+          3, ["Moderate reported symptoms (WOMAC-lite $womac/20)"]);
     }
     if (womac >= 5) {
       return SymptomScoreResult(
@@ -190,11 +198,11 @@ class ScoringService {
     return DifferentialDiagnosisResult(warnings: warnings, clinicalNotes: notes);
   }
 
-  /// Exact composite risk classification calibrated on KOA-PD-NM dataset:
-  /// Total < 2: Low Risk (Green)
-  /// Total 2 - 4: Moderate Risk (Yellow)
-  /// Total 5 - 7: High Risk (Orange)
-  /// Total >= 8: Extreme Risk (Red)
+  /// Composite Risk Score Prioritizing MediaPipe BlazePose Video Output (70% weightage):
+  /// Total < 3: Low Risk (Green - Normal Healthy Knee)
+  /// Total 3 - 5: Moderate Risk (Yellow - Early/Mild OA)
+  /// Total 6 - 8: High Risk (Orange - Significant OA)
+  /// Total >= 9: Extreme Risk (Red - Severe OA)
   static RiskScoreResult scoreRisk(
     GaitFeatures features,
     int womac, {
@@ -207,11 +215,11 @@ class ScoringService {
     int total = gaitRes.points + sympRes.points;
 
     String band;
-    if (total >= 8) {
+    if (total >= 9) {
       band = 'Extreme';
-    } else if (total >= 5) {
+    } else if (total >= 6) {
       band = 'High';
-    } else if (total >= 2) {
+    } else if (total >= 3) {
       band = 'Moderate';
     } else {
       band = 'Low';

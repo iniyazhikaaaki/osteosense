@@ -1,13 +1,13 @@
 // test/scoring_service_test.dart
-// Unit tests verifying scoring service matching reference Python script calibrated on KOA-PD-NM dataset.
+// Unit tests verifying 70% Video Gait / 30% Questionnaire weighted scoring service.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:osteosense/models/gait_features.dart';
 import 'package:osteosense/services/scoring_service.dart';
 
 void main() {
-  group('OsteoSense Scoring & Differential Diagnosis Unit Tests', () {
-    test('Normal Gait & Low WOMAC -> Low Risk Band (0/12)', () {
+  group('OsteoSense Weighted Scoring Unit Tests', () {
+    test('Normal Video Gait & Low WOMAC -> Low Risk (0/12)', () {
       final features = GaitFeatures(
         romLeft: 42.0,
         romRight: 40.5,
@@ -28,7 +28,7 @@ void main() {
       expect(result.recommendations, isNotEmpty);
     });
 
-    test('Severe ROM & High Asymmetry & WOMAC -> Extreme Risk (11/12)', () {
+    test('Severe Video Gait ROM & WOMAC -> Extreme Risk (11/12)', () {
       final features = GaitFeatures(
         romLeft: 12.5,
         romRight: 21.1,
@@ -41,8 +41,8 @@ void main() {
 
       final result = ScoringService.scoreRisk(features, 16);
 
-      expect(result.gaitPoints, equals(5));
-      expect(result.symptomPoints, equals(6));
+      expect(result.gaitPoints, equals(7));
+      expect(result.symptomPoints, equals(4));
       expect(result.totalScore, equals(11));
       expect(result.band, equals('Extreme'));
     });
