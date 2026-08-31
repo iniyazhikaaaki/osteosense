@@ -1,6 +1,8 @@
 // lib/widgets/flexion_chart.dart
-// Exact screenshot-matching Knee Flexion Trajectory Chart & Extracted Markers Dashboard Widget with Hindi & English localization support.
+// Dynamic screenshot-matching Knee Flexion Trajectory Chart & Extracted Gait Markers Dashboard Widget.
+// Prevents clipping/overflow by dynamically scaling X-axis (0-frames) and Y-axis (0-deg).
 
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/gait_features.dart';
@@ -21,18 +23,35 @@ class FlexionChart extends StatelessWidget {
     final leftTrajectory = features.leftTrajectory;
     final rightTrajectory = features.rightTrajectory;
 
+    if (leftTrajectory.isEmpty || rightTrajectory.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     List<FlSpot> spotsLeft = [];
     List<FlSpot> spotsRight = [];
-    int step = (leftTrajectory.length / 120).ceil().clamp(1, 10);
+    int maxFrames = max(leftTrajectory.length, rightTrajectory.length);
+    int step = (maxFrames / 120).ceil().clamp(1, 10);
+
+    double maxDegL = leftTrajectory.reduce(max);
+    double maxDegR = rightTrajectory.reduce(max);
+    double maxDeg = max(maxDegL, maxDegR);
+
+    // Dynamic Y-axis upper limit (padded nicely so curves never clip out of bounds)
+    double maxY = (maxDeg * 1.15).clamp(30.0, 140.0).ceilToDouble();
+    double yInterval = (maxY / 5).ceilToDouble().clamp(5.0, 30.0);
+
+    // Dynamic X-axis upper limit (exact frame count)
+    double maxX = maxFrames.toDouble();
+    double xInterval = (maxX / 6).ceilToDouble().clamp(10.0, 200.0);
 
     for (int i = 0; i < leftTrajectory.length; i += step) {
-      spotsLeft.add(FlSpot(i.toDouble(), leftTrajectory[i]));
+      spotsLeft.add(FlSpot(i.toDouble(), leftTrajectory[i].clamp(0.0, maxY)));
     }
     for (int i = 0; i < rightTrajectory.length; i += step) {
-      spotsRight.add(FlSpot(i.toDouble(), rightTrajectory[i]));
+      spotsRight.add(FlSpot(i.toDouble(), rightTrajectory[i].clamp(0.0, maxY)));
     }
 
-    // Exact screenshot colors
+    // Reference screenshot colors
     const Color darkBlueLine = Color(0xFF0055A5);
     const Color lightBlueLine = Color(0xFF40B5E5);
 
@@ -48,7 +67,7 @@ class FlexionChart extends StatelessWidget {
               child: Text(
                 t('chart_header', lang),
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E293B),
                 ),
@@ -59,11 +78,14 @@ class FlexionChart extends StatelessWidget {
               padding: const EdgeInsets.only(top: 10, right: 16, bottom: 4),
               child: LineChart(
                 LineChartData(
-                  gridData: const FlGridData(
+                  gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
-                    horizontalInterval: 2,
-                    getDrawingHorizontalLine: _getGridLine,
+                    horizontalInterval: yInterval,
+                    getDrawingHorizontalLine: (val) => const FlLine(
+                      color: Color(0xFFF1F5F9),
+                      strokeWidth: 1,
+                    ),
                   ),
                   titlesData: FlTitlesData(
                     rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -72,7 +94,7 @@ class FlexionChart extends StatelessWidget {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 28,
-                        interval: 50,
+                        interval: xInterval,
                         getTitlesWidget: (value, meta) => Text(
                           '${value.toInt()}',
                           style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
@@ -82,10 +104,10 @@ class FlexionChart extends StatelessWidget {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 28,
-                        interval: 2,
+                        reservedSize: 32,
+                        interval: yInterval,
                         getTitlesWidget: (value, meta) => Text(
-                          '${value.toInt()}',
+                          '${value.toInt()}°',
                           style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                         ),
                       ),
@@ -93,9 +115,9 @@ class FlexionChart extends StatelessWidget {
                   ),
                   borderData: FlBorderData(show: false),
                   minY: 0,
-                  maxY: 22,
+                  maxY: maxY,
                   minX: 0,
-                  maxX: 650,
+                  maxX: maxX,
                   lineBarsData: [
                     LineChartBarData(
                       spots: spotsLeft,
@@ -134,7 +156,7 @@ class FlexionChart extends StatelessWidget {
               child: Text(
                 t('gait_markers', lang),
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E293B),
                 ),
@@ -198,10 +220,6 @@ class FlexionChart extends StatelessWidget {
         );
       },
     );
-  }
-
-  static FlLine _getGridLine(double value) {
-    return const FlLine(color: Color(0xFFF1F5F9), strokeWidth: 1);
   }
 
   Widget _buildLegendItem(String label, Color color) {

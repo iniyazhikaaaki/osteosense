@@ -1,5 +1,5 @@
 // test/scoring_service_test.dart
-// Unit tests verifying scoring service and Differential Diagnosis evaluation with calibrated thresholds.
+// Unit tests verifying scoring service matching reference Python script calibrated on KOA-PD-NM dataset.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:osteosense/models/gait_features.dart';
@@ -7,7 +7,7 @@ import 'package:osteosense/services/scoring_service.dart';
 
 void main() {
   group('OsteoSense Scoring & Differential Diagnosis Unit Tests', () {
-    test('Normal Gait & Low WOMAC -> Low Risk Band (No Osteoarthritis Detected)', () {
+    test('Normal Gait & Low WOMAC -> Low Risk Band (0/12)', () {
       final features = GaitFeatures(
         romLeft: 42.0,
         romRight: 40.5,
@@ -18,7 +18,7 @@ void main() {
         jerkRight: 0.14,
       );
 
-      final result = ScoringService.scoreRisk(features, 2);
+      final result = ScoringService.scoreRisk(features, 0);
 
       expect(result.gaitPoints, equals(0));
       expect(result.symptomPoints, equals(0));
@@ -28,7 +28,7 @@ void main() {
       expect(result.recommendations, isNotEmpty);
     });
 
-    test('Severe ROM & High Asymmetry & WOMAC -> Extreme Risk (Osteoarthritis Detected)', () {
+    test('Severe ROM & High Asymmetry & WOMAC -> Extreme Risk (11/12)', () {
       final features = GaitFeatures(
         romLeft: 12.5,
         romRight: 21.1,
