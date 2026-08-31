@@ -1,9 +1,10 @@
 // lib/widgets/flexion_chart.dart
-// Exact screenshot-matching Knee Flexion Trajectory Chart & Extracted Markers Dashboard Widget.
+// Exact screenshot-matching Knee Flexion Trajectory Chart & Extracted Markers Dashboard Widget with Hindi & English localization support.
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/gait_features.dart';
+import '../translations.dart';
 
 class FlexionChart extends StatelessWidget {
   final GaitFeatures features;
@@ -42,11 +43,11 @@ class FlexionChart extends StatelessWidget {
         Widget chartSection = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.only(bottom: 12.0),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
               child: Text(
-                'Knee flexion over time',
-                style: TextStyle(
+                t('chart_header', lang),
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E293B),
@@ -58,14 +59,11 @@ class FlexionChart extends StatelessWidget {
               padding: const EdgeInsets.only(top: 10, right: 16, bottom: 4),
               child: LineChart(
                 LineChartData(
-                  gridData: FlGridData(
+                  gridData: const FlGridData(
                     show: true,
                     drawVerticalLine: false,
                     horizontalInterval: 2,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: const Color(0xFFF1F5F9),
-                      strokeWidth: 1,
-                    ),
+                    getDrawingHorizontalLine: _getGridLine,
                   ),
                   titlesData: FlTitlesData(
                     rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -120,9 +118,9 @@ class FlexionChart extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                _buildLegendItem('Left knee', darkBlueLine),
+                _buildLegendItem(t('left_leg', lang), darkBlueLine),
                 const SizedBox(width: 24),
-                _buildLegendItem('Right knee', lightBlueLine),
+                _buildLegendItem(t('right_leg', lang), lightBlueLine),
               ],
             ),
           ],
@@ -131,11 +129,11 @@ class FlexionChart extends StatelessWidget {
         Widget tableSection = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.only(bottom: 12.0),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
               child: Text(
-                'Extracted gait markers',
-                style: TextStyle(
+                t('gait_markers', lang),
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E293B),
@@ -200,6 +198,10 @@ class FlexionChart extends StatelessWidget {
         );
       },
     );
+  }
+
+  static FlLine _getGridLine(double value) {
+    return const FlLine(color: Color(0xFFF1F5F9), strokeWidth: 1);
   }
 
   Widget _buildLegendItem(String label, Color color) {
