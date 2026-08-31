@@ -1,5 +1,5 @@
 // lib/services/scoring_service.dart
-// Port of the reference scoring engine to Dart with Differential Diagnosis & Comorbidity Triage capabilities.
+// Port of the reference scoring engine to Dart with calibrated clinical thresholds & Differential Diagnosis Engine.
 
 import '../models/gait_features.dart';
 
@@ -68,29 +68,26 @@ class ScoringService {
 
   static const Map<String, List<String>> recommendationsMap = {
     'Low': [
-      'No significant gait or symptom impairment detected — continue normal activity.',
-      'General joint health: maintain a healthy weight, stay active with low-impact exercise (walking, cycling, swimming).',
-      'Rescreen in 6-12 months, or sooner if pain or stiffness develops.',
+      'Normal knee biomechanics & symptom profile — No Osteoarthritis detected.',
+      'Maintain general joint health with low-impact exercise (walking, swimming, cycling).',
+      'Rescreen in 6-12 months or if new symptoms develop.',
     ],
     'Moderate': [
-      'Start a structured physiotherapy program focused on quadriceps and hamstring strengthening and flexibility.',
-      'Hot/cold contrast therapy for stiffness — warm compress before activity, ice after, 10-15 minutes each.',
-      'Reduce high-impact loading (running, deep squats, stairs) until symptoms ease.',
-      'Over-the-counter analgesics as needed, under medical guidance.',
+      'Start a structured physiotherapy program focused on quadriceps and hamstring strengthening.',
+      'Hot/cold contrast therapy for stiffness — warm compress before activity, ice after.',
+      'Reduce high-impact loading (running, deep squats) until symptoms ease.',
       'Rescreen in 4-6 weeks to track trend.',
     ],
     'High': [
-      'Refer to an orthopedic specialist for clinical evaluation.',
-      'Imaging recommended (X-ray / MRI) to assess joint space narrowing and confirm severity.',
-      'Intensive supervised physiotherapy; consider a knee brace or offloading support.',
-      'Discuss intra-articular options (corticosteroid or hyaluronic acid injection) if conservative treatment stalls.',
-      'Weight management referral if applicable — reduces joint load significantly.',
+      'Refer to an orthopedic specialist for clinical evaluation and imaging (X-ray / MRI).',
+      'Intensive supervised physiotherapy; consider knee offloading support.',
+      'Discuss intra-articular options if conservative treatment stalls.',
+      'Weight management referral if applicable to reduce joint load.',
     ],
     'Extreme': [
-      'Urgent orthopedic surgical consultation — evaluate candidacy for arthroscopy, osteotomy, or total knee replacement depending on imaging and severity.',
-      'Pain management referral in the interim.',
-      'Mobility aid assessment (cane / walker) to reduce fall risk and joint strain.',
-      'Continue physiotherapy pre- and post-intervention as advised by the specialist.',
+      'Urgent orthopedic surgical consultation for total knee evaluation.',
+      'Interim pain management & mobility aid assessment to reduce fall risk.',
+      'Pre- and post-intervention physiotherapy as advised by specialist.',
     ],
   };
 
@@ -105,43 +102,43 @@ class ScoringService {
     if (worstRom < 20) {
       points += 3;
       reasons.add(
-          "Knee flexion range severely reduced (${worstRom.toStringAsFixed(0)} deg)");
-    } else if (worstRom < 25) {
+          "Knee flexion range severely reduced (${worstRom.toStringAsFixed(0)}°)");
+    } else if (worstRom < 26) {
       points += 2;
       reasons.add(
-          "Knee flexion range moderately reduced (${worstRom.toStringAsFixed(0)} deg)");
-    } else if (worstRom < 30) {
+          "Knee flexion range moderately reduced (${worstRom.toStringAsFixed(0)}°)");
+    } else if (worstRom < 32) {
       points += 1;
       reasons.add(
-          "Knee flexion range mildly reduced (${worstRom.toStringAsFixed(0)} deg)");
+          "Knee flexion range mildly reduced (${worstRom.toStringAsFixed(0)}°)");
     }
 
     double asymmetry = features.romAsymmetry;
-    if (asymmetry >= 0.50) {
+    if (asymmetry >= 0.45) {
       points += 3;
       reasons.add(
-          "Severe left-right asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
-    } else if (asymmetry >= 0.35) {
+          "Severe left-right gait asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
+    } else if (asymmetry >= 0.30) {
       points += 2;
       reasons.add(
-          "Marked left-right asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
-    } else if (asymmetry >= 0.20) {
+          "Marked left-right gait asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
+    } else if (asymmetry >= 0.15) {
       points += 1;
       reasons.add(
-          "Mild left-right asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
+          "Mild left-right gait asymmetry (${(asymmetry * 100).toStringAsFixed(0)}%)");
     }
 
     return GaitScoreResult(points, reasons);
   }
 
   static SymptomScoreResult scoreSymptoms(int womac) {
-    if (womac >= 15) {
+    if (womac >= 16) {
       return SymptomScoreResult(
           6, ["Severe reported pain and stiffness (WOMAC-lite $womac/20)"]);
-    } else if (womac >= 10) {
+    } else if (womac >= 11) {
       return SymptomScoreResult(4,
           ["Moderate-to-high reported symptoms (WOMAC-lite $womac/20)"]);
-    } else if (womac >= 5) {
+    } else if (womac >= 6) {
       return SymptomScoreResult(
           2, ["Mild reported symptoms (WOMAC-lite $womac/20)"]);
     }
@@ -162,27 +159,23 @@ class ScoringService {
 
     if (inputs.suddenSwelling) {
       warnings.add(
-          'Acute Crystal Arthropathy Overlap (Gout / Pseudogout suspected): Check serum uric acid & joint aspiration.');
+          'Acute Crystal Arthropathy Overlap (Gout / Pseudogout suspected): Order serum uric acid check & joint fluid analysis.');
       notes.add(
-          'Sudden hot/red joint swelling flares are characteristic of metabolic crystal arthropathy.');
+          'Sudden hot, red, acute joint swelling is characteristic of microcrystalline flares (uric acid / CPPD) rather than chronic OA wear.');
     }
 
     if (inputs.radiatingNumbness) {
       warnings.add(
-          'Neuropathic / Radicular Gait Overlap: Perform lumbar spine MRI & neurological assessment.');
+          'Neuropathic / Radicular Gait Overlap: Perform lumbar spine neurological assessment (L3-L5 radiculopathy).');
       notes.add(
-          'Radiating leg numbness or back pain indicates nerve root compression (sciatica/radiculopathy) causing secondary gait asymmetry.');
+          'Radiating numbness or tingling suggests nerve root compression or peripheral neuropathy confounding gait mechanics.');
     }
 
     if (inputs.lockingSensation) {
       warnings.add(
-          'Structural Meniscal / Ligamentous Injury Overlap: Order knee MRI & perform McMurray test.');
+          'Structural Meniscal / Ligamentous Injury Overlap: Order knee MRI & McMurray test.');
       notes.add(
-          'Mechanical joint locking or giving way points toward internal meniscal tear or ligamentous laxity.');
-    }
-
-    if (warnings.isEmpty) {
-      notes.add('No confounding inflammatory, neuropathic, or acute structural comorbidities identified. Primary OA pattern confirmed.');
+          'True mechanical knee locking or catch indicates a meniscus tear or loose body requiring structural MRI evaluation.');
     }
 
     return DifferentialDiagnosisResult(warnings: warnings, clinicalNotes: notes);
@@ -193,33 +186,37 @@ class ScoringService {
     int womac, {
     ComorbidityInputs? comorbidities,
   }) {
-    final gait = scoreGait(features);
-    final symptom = scoreSymptoms(womac);
-    final total = gait.points + symptom.points;
-    final reasons = [...gait.reasons, ...symptom.reasons];
-    final differential = evaluateDifferential(comorbidities ?? ComorbidityInputs());
+    final gaitRes = scoreGait(features);
+    final sympRes = scoreSymptoms(womac);
+    final diffRes = evaluateDifferential(comorbidities ?? ComorbidityInputs());
+
+    int total = gaitRes.points + sympRes.points;
 
     String band;
-    if (total >= 8) {
-      band = "Extreme";
-    } else if (total >= 5) {
-      band = "High";
-    } else if (total >= 2) {
-      band = "Moderate";
+    if (total >= 9) {
+      band = 'Extreme';
+    } else if (total >= 6) {
+      band = 'High';
+    } else if (total >= 3) {
+      band = 'Moderate';
     } else {
-      band = "Low";
+      band = 'Low';
     }
 
-    final recommendations = recommendationsMap[band] ?? [];
+    List<String> combinedReasons = []
+      ..addAll(gaitRes.reasons)
+      ..addAll(sympRes.reasons);
+
+    List<String> recs = recommendationsMap[band] ?? [];
 
     return RiskScoreResult(
       band: band,
       totalScore: total,
-      gaitPoints: gait.points,
-      symptomPoints: symptom.points,
-      reasons: reasons,
-      recommendations: recommendations,
-      differentialResult: differential,
+      gaitPoints: gaitRes.points,
+      symptomPoints: sympRes.points,
+      reasons: combinedReasons,
+      recommendations: recs,
+      differentialResult: diffRes,
     );
   }
 }

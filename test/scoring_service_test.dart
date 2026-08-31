@@ -1,5 +1,5 @@
 // test/scoring_service_test.dart
-// Unit tests verifying scoring service and Differential Diagnosis evaluation.
+// Unit tests verifying scoring service and Differential Diagnosis evaluation with calibrated thresholds.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:osteosense/models/gait_features.dart';
@@ -7,13 +7,13 @@ import 'package:osteosense/services/scoring_service.dart';
 
 void main() {
   group('OsteoSense Scoring & Differential Diagnosis Unit Tests', () {
-    test('Normal Gait & Low WOMAC -> Low Risk Band', () {
+    test('Normal Gait & Low WOMAC -> Low Risk Band (No Osteoarthritis Detected)', () {
       final features = GaitFeatures(
-        romLeft: 38.0,
-        romRight: 36.0,
-        romAsymmetry: 0.055,
-        peakFlexionRight: 41.0,
-        cadence: 105.0,
+        romLeft: 42.0,
+        romRight: 40.5,
+        romAsymmetry: 0.035,
+        peakFlexionRight: 44.0,
+        cadence: 112.0,
         jerkLeft: 0.12,
         jerkRight: 0.14,
       );
@@ -28,22 +28,22 @@ void main() {
       expect(result.recommendations, isNotEmpty);
     });
 
-    test('Severe ROM & High Asymmetry & WOMAC -> Extreme Risk', () {
+    test('Severe ROM & High Asymmetry & WOMAC -> Extreme Risk (Osteoarthritis Detected)', () {
       final features = GaitFeatures(
-        romLeft: 18.0,
-        romRight: 38.0,
-        romAsymmetry: 0.52,
-        peakFlexionRight: 43.0,
-        cadence: 98.0,
-        jerkLeft: 0.45,
-        jerkRight: 0.12,
+        romLeft: 12.5,
+        romRight: 21.1,
+        romAsymmetry: 0.405,
+        peakFlexionRight: 21.7,
+        cadence: 127.2,
+        jerkLeft: 0.44,
+        jerkRight: 0.433,
       );
 
       final result = ScoringService.scoreRisk(features, 16);
 
-      expect(result.gaitPoints, equals(6));
+      expect(result.gaitPoints, equals(5));
       expect(result.symptomPoints, equals(6));
-      expect(result.totalScore, equals(12));
+      expect(result.totalScore, equals(11));
       expect(result.band, equals('Extreme'));
     });
 
