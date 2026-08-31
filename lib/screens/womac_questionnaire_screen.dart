@@ -1,7 +1,8 @@
 // lib/screens/womac_questionnaire_screen.dart
-// WOMAC-lite symptom questionnaire screen with 5 questions and live total score calculator.
+// WOMAC-lite symptom questionnaire screen with comorbidity screening for Differential Diagnosis.
 
 import 'package:flutter/material.dart';
+import '../services/scoring_service.dart';
 import '../translations.dart';
 import '../widgets/language_toggle.dart';
 import 'video_selection_screen.dart';
@@ -39,9 +40,24 @@ class _WomacQuestionnaireScreenState extends State<WomacQuestionnaireScreen> {
   int _rising = 0;
   int _squatting = 0;
 
+  // Comorbidity screening switches
+  bool _longMorningStiffness = false;
+  bool _bilateralHands = false;
+  bool _suddenSwelling = false;
+  bool _radiatingNumbness = false;
+  bool _lockingSensation = false;
+
   int get _womacTotal => _painWalking + _painStairs + _stiffness + _rising + _squatting;
 
   void _proceedToVideoSelection() {
+    final comorbidities = ComorbidityInputs(
+      longMorningStiffness: _longMorningStiffness,
+      bilateralHands: _bilateralHands,
+      suddenSwelling: _suddenSwelling,
+      radiatingNumbness: _radiatingNumbness,
+      lockingSensation: _lockingSensation,
+    );
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -60,6 +76,7 @@ class _WomacQuestionnaireScreenState extends State<WomacQuestionnaireScreen> {
           womacRising: _rising,
           womacSquatting: _squatting,
           womacTotal: _womacTotal,
+          comorbidities: comorbidities,
         ),
       ),
     );
@@ -138,7 +155,7 @@ class _WomacQuestionnaireScreenState extends State<WomacQuestionnaireScreen> {
           t('womac_score', lang),
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.teal.shade700,
+        backgroundColor: const Color(0xFF0F172A),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
@@ -154,6 +171,7 @@ class _WomacQuestionnaireScreenState extends State<WomacQuestionnaireScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // WOMAC Score Header
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
@@ -191,6 +209,7 @@ class _WomacQuestionnaireScreenState extends State<WomacQuestionnaireScreen> {
               ),
             ),
             const SizedBox(height: 16),
+
             _buildQuestionCard(
               titleKey: 'pain_walking',
               currentValue: _painWalking,
@@ -216,7 +235,68 @@ class _WomacQuestionnaireScreenState extends State<WomacQuestionnaireScreen> {
               currentValue: _squatting,
               onChanged: (val) => setState(() => _squatting = val),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+
+            // Comorbidity & Differential Diagnosis Triage Panel
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(14.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.biotech_outlined, color: Colors.teal),
+                        const SizedBox(width: 8),
+                        Text(
+                          t('diff_screening_title', lang),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      title: Text(t('morning_stiffness_long', lang), style: const TextStyle(fontSize: 13)),
+                      value: _longMorningStiffness,
+                      activeThumbColor: Colors.teal,
+                      onChanged: (val) => setState(() => _longMorningStiffness = val),
+                    ),
+                    SwitchListTile(
+                      title: Text(t('bilateral_hands', lang), style: const TextStyle(fontSize: 13)),
+                      value: _bilateralHands,
+                      activeThumbColor: Colors.teal,
+                      onChanged: (val) => setState(() => _bilateralHands = val),
+                    ),
+                    SwitchListTile(
+                      title: Text(t('sudden_swelling', lang), style: const TextStyle(fontSize: 13)),
+                      value: _suddenSwelling,
+                      activeThumbColor: Colors.teal,
+                      onChanged: (val) => setState(() => _suddenSwelling = val),
+                    ),
+                    SwitchListTile(
+                      title: Text(t('radiating_numbness', lang), style: const TextStyle(fontSize: 13)),
+                      value: _radiatingNumbness,
+                      activeThumbColor: Colors.teal,
+                      onChanged: (val) => setState(() => _radiatingNumbness = val),
+                    ),
+                    SwitchListTile(
+                      title: Text(t('locking_sensation', lang), style: const TextStyle(fontSize: 13)),
+                      value: _lockingSensation,
+                      activeThumbColor: Colors.teal,
+                      onChanged: (val) => setState(() => _lockingSensation = val),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
             Row(
               children: [
                 Expanded(

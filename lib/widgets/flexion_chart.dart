@@ -1,36 +1,30 @@
 // lib/widgets/flexion_chart.dart
-// Interactive Line Chart displaying Knee Flexion Angle Trajectory over frames.
+// Aesthetic screenshot-matching Knee Flexion Trajectory Chart & Extracted Markers Dashboard Widget.
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../models/gait_features.dart';
+import '../theme/app_theme.dart';
 import '../translations.dart';
 
 class FlexionChart extends StatelessWidget {
-  final List<double> leftTrajectory;
-  final List<double> rightTrajectory;
+  final GaitFeatures features;
   final String lang;
 
   const FlexionChart({
     super.key,
-    required this.leftTrajectory,
-    required this.rightTrajectory,
+    required this.features,
     required this.lang,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (leftTrajectory.isEmpty || rightTrajectory.isEmpty) {
-      return Container(
-        height: 200,
-        alignment: Alignment.center,
-        child: const Text('No trajectory data available'),
-      );
-    }
+    final leftTrajectory = features.leftTrajectory;
+    final rightTrajectory = features.rightTrajectory;
 
-    // Downsample for rendering performance if frame count is high
     List<FlSpot> spotsLeft = [];
     List<FlSpot> spotsRight = [];
-    int step = (leftTrajectory.length / 50).ceil().clamp(1, 10);
+    int step = (leftTrajectory.length / 100).ceil().clamp(1, 10);
 
     for (int i = 0; i < leftTrajectory.length; i += step) {
       spotsLeft.add(FlSpot(i.toDouble(), leftTrajectory[i]));
@@ -39,109 +33,175 @@ class FlexionChart extends StatelessWidget {
       spotsRight.add(FlSpot(i.toDouble(), rightTrajectory[i]));
     }
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              t('flexion_chart_title', lang),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueGrey,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isWide = constraints.maxWidth > 700;
+
+        Widget chartWidget = Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildLegendItem(t('left_leg', lang), Colors.blue.shade700),
-                const SizedBox(width: 16),
-                _buildLegendItem(t('right_leg', lang), Colors.deepOrange),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: LineChart(
-                LineChartData(
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 20,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: Colors.grey.shade300,
-                      strokeWidth: 1,
-                    ),
+                Text(
+                  t('chart_header', lang),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryNavy,
                   ),
-                  titlesData: FlTitlesData(
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 22,
-                        interval: 30,
-                        getTitlesWidget: (value, meta) => Text(
-                          'F${value.toInt()}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade600,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 260,
+                  child: LineChart(
+                    LineChartData(
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: 2,
+                        getDrawingHorizontalLine: (value) => FlLine(
+                          color: Colors.grey.shade200,
+                          strokeWidth: 1,
+                        ),
+                      ),
+                      titlesData: FlTitlesData(
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 28,
+                            interval: 50,
+                            getTitlesWidget: (value, meta) => Text(
+                              '${value.toInt()}',
+                              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                            ),
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 32,
+                            interval: 2,
+                            getTitlesWidget: (value, meta) => Text(
+                              '${value.toInt()}',
+                              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 32,
-                        interval: 20,
-                        getTitlesWidget: (value, meta) => Text(
-                          '${value.toInt()}°',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade600,
-                          ),
+                      borderData: FlBorderData(show: false),
+                      minY: 0,
+                      maxY: 24,
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: spotsLeft,
+                          isCurved: true,
+                          color: AppTheme.leftKneeDarkBlue,
+                          barWidth: 2.2,
+                          dotData: const FlDotData(show: false),
                         ),
-                      ),
+                        LineChartBarData(
+                          spots: spotsRight,
+                          isCurved: true,
+                          color: AppTheme.rightKneeLightBlue,
+                          barWidth: 2.2,
+                          dotData: const FlDotData(show: false),
+                        ),
+                      ],
                     ),
                   ),
-                  borderData: FlBorderData(
-                    show: true,
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  minY: -10,
-                  maxY: 60,
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spotsLeft,
-                      isCurved: true,
-                      color: Colors.blue.shade700,
-                      barWidth: 2.5,
-                      dotData: const FlDotData(show: false),
-                    ),
-                    LineChartBarData(
-                      spots: spotsRight,
-                      isCurved: true,
-                      color: Colors.deepOrange,
-                      barWidth: 2.5,
-                      dotData: const FlDotData(show: false),
-                    ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildLegendItem(t('left_leg', lang), AppTheme.leftKneeDarkBlue),
+                    const SizedBox(width: 20),
+                    _buildLegendItem(t('right_leg', lang), AppTheme.rightKneeLightBlue),
                   ],
                 ),
-              ),
+              ],
             ),
+          ),
+        );
+
+        Widget markersWidget = Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t('gait_markers', lang),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryNavy,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Table(
+                  border: TableBorder.symmetric(
+                    inside: BorderSide(color: Colors.grey.shade200, width: 1),
+                  ),
+                  children: [
+                    TableRow(
+                      decoration: BoxDecoration(color: Colors.grey.shade50),
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('Marker', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('Value', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                        ),
+                      ],
+                    ),
+                    _buildTableRow(t('marker_rom_l', lang), features.romLeft.toStringAsFixed(1)),
+                    _buildTableRow(t('marker_rom_r', lang), features.romRight.toStringAsFixed(1)),
+                    _buildTableRow(t('marker_asymmetry', lang), features.romAsymmetry.toStringAsFixed(3)),
+                    _buildTableRow(t('marker_peak_r', lang), features.peakFlexionRight.toStringAsFixed(1)),
+                    _buildTableRow(t('marker_cadence', lang), features.cadence.toStringAsFixed(1)),
+                    _buildTableRow(t('marker_jerk_l', lang), features.jerkLeft.toStringAsFixed(2)),
+                    _buildTableRow(t('marker_jerk_r', lang), features.jerkRight.toStringAsFixed(3)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 3, child: chartWidget),
+              const SizedBox(width: 16),
+              Expanded(flex: 2, child: markersWidget),
+            ],
+          );
+        }
+
+        return Column(
+          children: [
+            chartWidget,
+            const SizedBox(height: 16),
+            markersWidget,
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -150,20 +210,39 @@ class FlexionChart extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 12,
-          height: 12,
+          width: 14,
+          height: 4,
           decoration: BoxDecoration(
             color: color,
-            shape: BoxShape.circle,
+            borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey.shade800,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.primaryNavy,
+          ),
+        ),
+      ],
+    );
+  }
+
+  TableRow _buildTableRow(String label, String val) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 8.0),
+          child: Text(label, style: const TextStyle(fontSize: 13, color: AppTheme.primaryNavy)),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 8.0),
+          child: Text(
+            val,
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryNavy),
           ),
         ),
       ],

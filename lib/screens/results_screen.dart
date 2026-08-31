@@ -1,5 +1,5 @@
 // lib/screens/results_screen.dart
-// Screening results dashboard with risk banner, score breakdown, reason list, recommendations, flexion chart, extracted markers, and SQLite persistence.
+// Screening results dashboard with risk banner, score breakdown, differential diagnosis triage, flexion chart & markers table.
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +7,7 @@ import '../models/gait_features.dart';
 import '../models/patient_record.dart';
 import '../services/database_helper.dart';
 import '../services/scoring_service.dart';
+import '../theme/app_theme.dart';
 import '../translations.dart';
 import '../widgets/flexion_chart.dart';
 import '../widgets/language_toggle.dart';
@@ -27,6 +28,7 @@ class ResultsScreen extends StatefulWidget {
   final int womacRising;
   final int womacSquatting;
   final int womacTotal;
+  final ComorbidityInputs? comorbidities;
   final GaitFeatures features;
 
   const ResultsScreen({
@@ -45,6 +47,7 @@ class ResultsScreen extends StatefulWidget {
     required this.womacRising,
     required this.womacSquatting,
     required this.womacTotal,
+    this.comorbidities,
     required this.features,
   });
 
@@ -59,7 +62,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
   @override
   void initState() {
     super.initState();
-    _riskResult = ScoringService.scoreRisk(widget.features, widget.womacTotal);
+    _riskResult = ScoringService.scoreRisk(
+      widget.features,
+      widget.womacTotal,
+      comorbidities: widget.comorbidities,
+    );
     _autoSaveToDatabase();
   }
 
@@ -110,28 +117,28 @@ class _ResultsScreenState extends State<ResultsScreen> {
     switch (band) {
       case 'Extreme':
         return {
-          'bg': const Color(0xFFFEF2F2),
-          'border': const Color(0xFFFCA5A5),
-          'text': const Color(0xFFB91C1C),
+          'bg': AppTheme.riskExtremeBg,
+          'border': AppTheme.riskExtremeBorder,
+          'text': AppTheme.riskExtremeText,
         };
       case 'High':
         return {
-          'bg': const Color(0xFFFFF7ED),
-          'border': const Color(0xFFFDBA74),
-          'text': const Color(0xFFC2410C),
+          'bg': AppTheme.riskHighBg,
+          'border': AppTheme.riskHighBorder,
+          'text': AppTheme.riskHighText,
         };
       case 'Moderate':
         return {
-          'bg': const Color(0xFFFFFBEB),
-          'border': const Color(0xFFFCD34D),
-          'text': const Color(0xFFB45309),
+          'bg': AppTheme.riskModerateBg,
+          'border': AppTheme.riskModerateBorder,
+          'text': AppTheme.riskModerateText,
         };
       case 'Low':
       default:
         return {
-          'bg': const Color(0xFFECFDF5),
-          'border': const Color(0xFF86EFAC),
-          'text': const Color(0xFF15803D),
+          'bg': AppTheme.riskLowBg,
+          'border': AppTheme.riskLowBorder,
+          'text': AppTheme.riskLowText,
         };
     }
   }
@@ -154,6 +161,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget build(BuildContext context) {
     final lang = widget.lang;
     final style = _getRiskStyle(_riskResult.band);
+    final diffResult = _riskResult.differentialResult;
 
     return Scaffold(
       appBar: AppBar(
@@ -161,7 +169,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
           t('app_title', lang),
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.teal.shade700,
+        backgroundColor: AppTheme.primaryNavy,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
@@ -173,16 +181,16 @@ class _ResultsScreenState extends State<ResultsScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Patient Header Summary
+            // Patient Header Summary Card
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(14.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
                     Row(
@@ -194,10 +202,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             Text(
                               widget.name,
                               style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryNavy,
                               ),
                             ),
+                            const SizedBox(height: 4),
                             Text(
                               'ID: ${widget.patientId}  |  ${widget.age} ${t("age", lang)} (${widget.sex})',
                               style: const TextStyle(color: Colors.grey, fontSize: 13),
@@ -207,26 +217,26 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         if (_savedToDb)
                           const Chip(
                             avatar: Icon(Icons.check, size: 16, color: Colors.green),
-                            label: Text('Saved Offline', style: TextStyle(fontSize: 11)),
+                            label: Text('Saved Offline', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             backgroundColor: Color(0xFFECFDF5),
                           ),
                       ],
                     ),
-                    const Divider(height: 16),
+                    const Divider(height: 20),
                     Row(
                       children: [
-                        const Icon(Icons.sensors, size: 16, color: Colors.teal),
-                        const SizedBox(width: 6),
+                        const Icon(Icons.sensors, size: 18, color: AppTheme.electricTeal),
+                        const SizedBox(width: 8),
                         Text(
                           '${t("data_source", lang)}: ',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           widget.features.inputSource,
-                          style: TextStyle(
-                            fontSize: 12,
+                          style: const TextStyle(
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: Colors.teal.shade900,
+                            color: AppTheme.electricTeal,
                           ),
                         ),
                       ],
@@ -235,14 +245,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
             // Risk Banner
             Container(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: style['bg'],
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: style['border']!, width: 2),
               ),
               child: Column(
@@ -250,10 +260,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   Text(
                     _getRiskBandLabel(_riskResult.band, lang).toUpperCase(),
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: style['text'],
-                      letterSpacing: 1.1,
+                      letterSpacing: 1.2,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -268,62 +278,81 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
-            // Signal Quality Metric
-            Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Column(
-                      children: [
-                        Text(
-                          t('confidence', lang),
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${(widget.features.confidence * 100).toStringAsFixed(0)}%',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal,
+            // Screenshot-Matching Knee Flexion Trajectory Chart & Extracted Markers Dashboard
+            FlexionChart(
+              features: widget.features,
+              lang: lang,
+            ),
+            const SizedBox(height: 16),
+
+            // Differential Diagnosis & Comorbidity Triage Card
+            if (diffResult.warnings.isNotEmpty) ...[
+              Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Color(0xFFFDBA74), width: 1.5),
+                ),
+                color: const Color(0xFFFFF7ED),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.biotech, color: Color(0xFFC2410C)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              t('diff_diagnosis_header', lang),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFC2410C),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    Container(height: 24, width: 1, color: Colors.grey.shade300),
-                    Column(
-                      children: [
-                        Text(
-                          t('frames_analyzed', lang),
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${widget.features.framesTracked}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Column(
+                        children: diffResult.warnings.map((warn) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, size: 18, color: Color(0xFFC2410C)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    warn,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF9A3412),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 14),
+              const SizedBox(height: 16),
+            ],
 
             // Score Breakdown Card
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -334,7 +363,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blueGrey,
+                        color: AppTheme.primaryNavy,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -344,7 +373,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           child: _buildSubScoreBox(
                             t('gait_subscore', lang),
                             '${_riskResult.gaitPoints} / 6',
-                            Colors.blue.shade700,
+                            AppTheme.leftKneeDarkBlue,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -361,12 +390,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
             // Why this score
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -374,24 +403,21 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.help_outline, color: Colors.teal),
+                        const Icon(Icons.help_outline, color: AppTheme.electricTeal),
                         const SizedBox(width: 8),
                         Text(
                           t('why_score', lang),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.teal,
+                            color: AppTheme.electricTeal,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     if (_riskResult.reasons.isEmpty)
-                      const Text(
-                        'No significant OA risk indicators identified.',
-                        style: TextStyle(color: Colors.grey),
-                      )
+                      const Text('No significant OA risk indicators identified.', style: TextStyle(color: Colors.grey))
                     else
                       Column(
                         children: _riskResult.reasons
@@ -401,14 +427,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('• ',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold, fontSize: 16)),
+                                    const Text('• ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                     Expanded(
-                                      child: Text(
-                                        reason,
-                                        style: const TextStyle(fontSize: 14),
-                                      ),
+                                      child: Text(reason, style: const TextStyle(fontSize: 14)),
                                     ),
                                   ],
                                 ),
@@ -420,12 +441,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
             // Recommended next steps
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -433,14 +454,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.medical_services_outlined, color: Colors.teal),
+                        const Icon(Icons.medical_services_outlined, color: AppTheme.electricTeal),
                         const SizedBox(width: 8),
                         Text(
                           t('next_steps', lang),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.teal,
+                            color: AppTheme.electricTeal,
                           ),
                         ),
                       ],
@@ -454,73 +475,16 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.check_circle_outline,
-                                      size: 18, color: Colors.teal),
+                                  const Icon(Icons.check_circle_outline, size: 18, color: AppTheme.electricTeal),
                                   const SizedBox(width: 8),
                                   Expanded(
-                                    child: Text(
-                                      rec,
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
+                                    child: Text(rec, style: const TextStyle(fontSize: 14)),
                                   ),
                                 ],
                               ),
                             ),
                           )
                           .toList(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Knee Flexion Angle Chart
-            FlexionChart(
-              leftTrajectory: widget.features.leftTrajectory,
-              rightTrajectory: widget.features.rightTrajectory,
-              lang: lang,
-            ),
-            const SizedBox(height: 14),
-
-            // Extracted Markers Table
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t('gait_markers', lang),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueGrey,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Table(
-                      border: TableBorder.all(color: Colors.grey.shade300, width: 1),
-                      children: [
-                        _buildTableRow(t('marker_rom_l', lang),
-                            '${widget.features.romLeft.toStringAsFixed(1)}°'),
-                        _buildTableRow(t('marker_rom_r', lang),
-                            '${widget.features.romRight.toStringAsFixed(1)}°'),
-                        _buildTableRow(t('marker_asymmetry', lang),
-                            '${(widget.features.romAsymmetry * 100).toStringAsFixed(1)}%'),
-                        _buildTableRow(t('marker_peak_r', lang),
-                            '${widget.features.peakFlexionRight.toStringAsFixed(1)}°'),
-                        _buildTableRow(t('marker_cadence', lang),
-                            '${widget.features.cadence.toStringAsFixed(1)}'),
-                        _buildTableRow(t('marker_sts_time', lang),
-                            '${widget.features.sitToStandTime.toStringAsFixed(1)}s'),
-                        _buildTableRow(t('marker_jerk_l', lang),
-                            widget.features.jerkLeft.toStringAsFixed(3)),
-                        _buildTableRow(t('marker_jerk_r', lang),
-                            widget.features.jerkRight.toStringAsFixed(3)),
-                      ],
                     ),
                   ],
                 ),
@@ -533,7 +497,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.amber.shade400),
               ),
               child: Row(
@@ -574,13 +538,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal.shade700,
+                backgroundColor: AppTheme.primaryNavy,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -592,7 +556,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -609,25 +573,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  TableRow _buildTableRow(String label, String val) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(label, style: const TextStyle(fontSize: 13)),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(
-            val,
-            textAlign: TextAlign.right,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/gait_features.dart';
 import '../services/gait_analysis_service.dart';
+import '../services/scoring_service.dart';
 import '../translations.dart';
 import 'results_screen.dart';
 
@@ -23,6 +24,7 @@ class ProcessingScreen extends StatefulWidget {
   final int womacRising;
   final int womacSquatting;
   final int womacTotal;
+  final ComorbidityInputs comorbidities;
   final String? walkVideoPath;
   final String? stsVideoPath;
   final bool useImpairedPreset;
@@ -44,6 +46,7 @@ class ProcessingScreen extends StatefulWidget {
     required this.womacRising,
     required this.womacSquatting,
     required this.womacTotal,
+    required this.comorbidities,
     this.walkVideoPath,
     this.stsVideoPath,
     required this.useImpairedPreset,
@@ -71,7 +74,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
       isSensorInput: widget.isSensorInput,
     );
 
-    _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 40), (timer) {
       setState(() {
         _progress += 0.04;
         if (_progress >= 1.0) {
@@ -102,6 +105,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
           womacRising: widget.womacRising,
           womacSquatting: widget.womacSquatting,
           womacTotal: widget.womacTotal,
+          comorbidities: widget.comorbidities,
           features: _computedFeatures,
         ),
       ),

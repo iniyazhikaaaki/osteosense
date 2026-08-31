@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/scoring_service.dart';
 import '../translations.dart';
 import '../widgets/language_toggle.dart';
 import 'processing_screen.dart';
@@ -22,6 +23,7 @@ class VideoSelectionScreen extends StatefulWidget {
   final int womacRising;
   final int womacSquatting;
   final int womacTotal;
+  final ComorbidityInputs comorbidities;
 
   const VideoSelectionScreen({
     super.key,
@@ -39,6 +41,7 @@ class VideoSelectionScreen extends StatefulWidget {
     required this.womacRising,
     required this.womacSquatting,
     required this.womacTotal,
+    required this.comorbidities,
   });
 
   @override
@@ -50,7 +53,7 @@ class _VideoSelectionScreenState extends State<VideoSelectionScreen> {
   XFile? _stsVideo;
   bool _useImpairedPreset = false;
   bool _isSensorConnected = false;
-  int _selectedInputTab = 0; // 0 = Camera Pose Analysis, 1 = BLE Knee Sensor
+  int _selectedInputTab = 0;
 
   Future<void> _pickVideo(ImageSource source, bool isWalkVideo) async {
     final picker = ImagePicker();
@@ -89,6 +92,7 @@ class _VideoSelectionScreenState extends State<VideoSelectionScreen> {
           womacRising: widget.womacRising,
           womacSquatting: widget.womacSquatting,
           womacTotal: widget.womacTotal,
+          comorbidities: widget.comorbidities,
           walkVideoPath: _walkVideo?.path,
           stsVideoPath: _stsVideo?.path,
           useImpairedPreset: _useImpairedPreset,
@@ -200,7 +204,7 @@ class _VideoSelectionScreenState extends State<VideoSelectionScreen> {
           t('upload_video', lang),
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.teal.shade700,
+        backgroundColor: const Color(0xFF0F172A),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12.0),

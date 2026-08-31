@@ -1,9 +1,10 @@
 // lib/main.dart
-// Main entry point for OsteoSense Flutter app.
+// Main entry point for OsteoSense Flutter app with aesthetic medical design system.
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/patient_details_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,19 +41,7 @@ class _OsteoSenseAppState extends State<OsteoSenseApp> {
     return MaterialApp(
       title: 'OsteoSense',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
-          primary: Colors.teal.shade700,
-          secondary: Colors.tealAccent.shade700,
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        cardTheme: const CardThemeData(
-          color: Colors.white,
-          surfaceTintColor: Colors.white,
-        ),
-      ),
+      theme: AppTheme.lightTheme,
       home: PatientDetailsScreen(
         currentLang: _currentLang,
         onLanguageChanged: _updateLanguage,

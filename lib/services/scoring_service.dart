@@ -1,5 +1,5 @@
 // lib/services/scoring_service.dart
-// Port of the Python reference scoring engine (Section 6 of brief) to Dart.
+// Port of the reference scoring engine to Dart with Differential Diagnosis & Comorbidity Triage capabilities.
 
 import '../models/gait_features.dart';
 
@@ -15,6 +15,32 @@ class SymptomScoreResult {
   SymptomScoreResult(this.points, this.reasons);
 }
 
+class ComorbidityInputs {
+  final bool longMorningStiffness;
+  final bool bilateralHands;
+  final bool suddenSwelling;
+  final bool radiatingNumbness;
+  final bool lockingSensation;
+
+  ComorbidityInputs({
+    this.longMorningStiffness = false,
+    this.bilateralHands = false,
+    this.suddenSwelling = false,
+    this.radiatingNumbness = false,
+    this.lockingSensation = false,
+  });
+}
+
+class DifferentialDiagnosisResult {
+  final List<String> warnings;
+  final List<String> clinicalNotes;
+
+  DifferentialDiagnosisResult({
+    required this.warnings,
+    required this.clinicalNotes,
+  });
+}
+
 class RiskScoreResult {
   final String band; // Low, Moderate, High, Extreme
   final int totalScore;
@@ -22,6 +48,7 @@ class RiskScoreResult {
   final int symptomPoints;
   final List<String> reasons;
   final List<String> recommendations;
+  final DifferentialDiagnosisResult differentialResult;
 
   RiskScoreResult({
     required this.band,
@@ -30,6 +57,7 @@ class RiskScoreResult {
     required this.symptomPoints,
     required this.reasons,
     required this.recommendations,
+    required this.differentialResult,
   });
 }
 
@@ -120,11 +148,56 @@ class ScoringService {
     return SymptomScoreResult(0, []);
   }
 
-  static RiskScoreResult scoreRisk(GaitFeatures features, int womac) {
+  /// Differential Diagnosis Engine for differentiating Osteoarthritis from RA, Gout, Neuropathy, or Meniscal Tear
+  static DifferentialDiagnosisResult evaluateDifferential(ComorbidityInputs inputs) {
+    List<String> warnings = [];
+    List<String> notes = [];
+
+    if (inputs.longMorningStiffness || inputs.bilateralHands) {
+      warnings.add(
+          'Inflammatory Polyarthritis Overlap (Rheumatoid Arthritis suspected): Order RF, Anti-CCP, ESR/CRP blood panel.');
+      notes.add(
+          'Morning stiffness > 60 mins or bilateral small joint pain suggests systemic inflammatory arthritis rather than isolated mechanical OA.');
+    }
+
+    if (inputs.suddenSwelling) {
+      warnings.add(
+          'Acute Crystal Arthropathy Overlap (Gout / Pseudogout suspected): Check serum uric acid & joint aspiration.');
+      notes.add(
+          'Sudden hot/red joint swelling flares are characteristic of metabolic crystal arthropathy.');
+    }
+
+    if (inputs.radiatingNumbness) {
+      warnings.add(
+          'Neuropathic / Radicular Gait Overlap: Perform lumbar spine MRI & neurological assessment.');
+      notes.add(
+          'Radiating leg numbness or back pain indicates nerve root compression (sciatica/radiculopathy) causing secondary gait asymmetry.');
+    }
+
+    if (inputs.lockingSensation) {
+      warnings.add(
+          'Structural Meniscal / Ligamentous Injury Overlap: Order knee MRI & perform McMurray test.');
+      notes.add(
+          'Mechanical joint locking or giving way points toward internal meniscal tear or ligamentous laxity.');
+    }
+
+    if (warnings.isEmpty) {
+      notes.add('No confounding inflammatory, neuropathic, or acute structural comorbidities identified. Primary OA pattern confirmed.');
+    }
+
+    return DifferentialDiagnosisResult(warnings: warnings, clinicalNotes: notes);
+  }
+
+  static RiskScoreResult scoreRisk(
+    GaitFeatures features,
+    int womac, {
+    ComorbidityInputs? comorbidities,
+  }) {
     final gait = scoreGait(features);
     final symptom = scoreSymptoms(womac);
     final total = gait.points + symptom.points;
     final reasons = [...gait.reasons, ...symptom.reasons];
+    final differential = evaluateDifferential(comorbidities ?? ComorbidityInputs());
 
     String band;
     if (total >= 8) {
@@ -146,6 +219,7 @@ class ScoringService {
       symptomPoints: symptom.points,
       reasons: reasons,
       recommendations: recommendations,
+      differentialResult: differential,
     );
   }
 }
