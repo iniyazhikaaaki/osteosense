@@ -1,5 +1,5 @@
 // lib/theme/app_theme.dart
-// Modern Project-Winning Medical Design System for OsteoSense
+// Modern Aesthetic Medical Tech Design System for OsteoSense
 
 import 'package:flutter/material.dart';
 
@@ -12,8 +12,8 @@ class AppTheme {
   static const Color cardSurface = Colors.white;
 
   // Chart Line Colors matching reference screenshot
-  static const Color leftKneeDarkBlue = Color(0xFF0B4F9C);
-  static const Color rightKneeLightBlue = Color(0xFF38BDF8);
+  static const Color leftKneeDarkBlue = Color(0xFF0055A5);
+  static const Color rightKneeLightBlue = Color(0xFF40B5E5);
 
   // Risk Band Colors
   static const Color riskLowBg = Color(0xFFECFDF5);
@@ -41,7 +41,6 @@ class AppTheme {
         primary: electricTeal,
         secondary: accentCyan,
         surface: cardSurface,
-        background: backgroundIce,
       ),
       scaffoldBackgroundColor: backgroundIce,
       appBarTheme: const AppBarTheme(
@@ -52,11 +51,11 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: cardSurface,
-        elevation: 3,
-        shadowColor: Colors.black.withValues(alpha: 0.06),
+        elevation: 2,
+        shadowColor: Colors.black.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey.shade200, width: 1),
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
