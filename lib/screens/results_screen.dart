@@ -266,6 +266,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       letterSpacing: 1.2,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _riskResult.band == 'Low'
+                        ? '• NO OSTEOARTHRITIS DETECTED •'
+                        : (_riskResult.band == 'Moderate'
+                            ? '• EARLY / MILD OSTEOARTHRITIS INDICATIONS •'
+                            : '• OSTEOARTHRITIS DETECTED •'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: style['text'],
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     '${t("total_score", lang)}: ${_riskResult.totalScore} / 12',
